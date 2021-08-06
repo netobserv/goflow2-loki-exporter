@@ -16,6 +16,11 @@ docker push quay.io/jotak/goflow:v2-loki
 
 podman build -t quay.io/jotak/goflow:v2-loki .
 podman push quay.io/jotak/goflow:v2-loki
+
+# or
+
+podman build -t quay.io/jotak/goflow:v2-kube-loki -f with-kube-enricher.dockerfile .
+podman push quay.io/jotak/goflow:v2-kube-loki
 ```
 
 ## Run in kube
@@ -46,8 +51,8 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - /goflow2 -loglevel "debug" | /loki-exporter
-        image: quay.io/jotak/goflow:v2-loki
+        - /goflow2 -loglevel "debug" | /kube-enricher | /loki-exporter
+        image: quay.io/jotak/goflow:v2-kube-loki
         imagePullPolicy: IfNotPresent
         name: goflow
 ---

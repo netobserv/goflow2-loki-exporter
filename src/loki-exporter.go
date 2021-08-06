@@ -1,19 +1,33 @@
 package main
 
 import (
+	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"os"
+	"strings"
+	"time"
 
+	logadapter "github.com/go-kit/kit/log/logrus"
+	"github.com/grafana/loki/pkg/promtail/client"
+	"github.com/jotak/goflow2-loki-exporter/config"
+	jsoniter "github.com/json-iterator/go"
+	"github.com/prometheus/common/model"
 	log "github.com/sirupsen/logrus"
 )
 
 var (
-	version    = ""
-	buildinfos = ""
-	AppVersion = "loki-exporter " + version + " " + buildinfos
-	LogLevel   = flag.String("loglevel", "info", "Log level")
-	Version    = flag.Bool("v", false, "Print version")
+	version     = "unknown"
+	commitHash  = "unknown"
+	logLevel    = flag.String("loglevel", "info", "Log level")
+	versionFlag = flag.Bool("v", false, "Print version")
+	configFile  = flag.String("config", "", "Path to the YAML config file")
+	appVersion  = fmt.Sprintf("loki-exporter %s / commit: %s", version, commitHash)
+)
+
+var (
+	keyReplacer = strings.NewReplacer("/", "_", ".", "_", "-", "_")
 )
 
 func init() {
@@ -22,15 +36,89 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if *Version {
-		fmt.Println(AppVersion)
+	if *versionFlag {
+		fmt.Println(appVersion)
 		os.Exit(0)
 	}
 
-	lvl, _ := log.ParseLevel(*LogLevel)
+	lvl, _ := log.ParseLevel(*logLevel)
 	log.SetLevel(lvl)
 
+	var conf config.Config
+	var err error
+	if *configFile != "" {
+		conf, err = config.Load(*configFile)
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		log.Infof("Config file not provided, using defaults")
+		conf = config.Default()
+	}
+
+	log.Infof("Config: %v", conf)
 	log.Info("Starting loki-exporter")
 
-	// TODO
+	clientConfig, err := conf.BuildClientConfig()
+	if err != nil {
+		log.Fatal(err)
+	}
+	lokiClient, err := client.New(clientConfig, logadapter.NewLogrusLogger(log.StandardLogger()))
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for scanner.Scan() {
+		in := scanner.Bytes()
+		err := processRecord(in, conf, lokiClient)
+		if err != nil {
+			log.Error(err)
+		}
+		if conf.PrintRecords {
+			fmt.Println(string(in))
+		}
+	}
+
+	if err = scanner.Err(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func processRecord(rawRecord []byte, conf config.Config, loki client.Client) error {
+	// TODO: allow protobuf input
+	var record map[model.LabelName]interface{}
+	err := json.Unmarshal(rawRecord, &record)
+	if err != nil {
+		return err
+	}
+
+	labels := model.LabelSet{}
+	for k, v := range conf.StaticLabels {
+		labels[k] = v
+	}
+	for _, label := range conf.Labels {
+		if val, ok := record[label]; ok {
+			sanitizedKey := model.LabelName(keyReplacer.Replace(string(label)))
+			if sanitizedKey.IsValid() {
+				lv := model.LabelValue(fmt.Sprintf("%v", val))
+				if lv.IsValid() {
+					labels[sanitizedKey] = lv
+				} else {
+					log.Infof("Invalid value: %v", lv)
+				}
+			} else {
+				log.Infof("Invalid label: %v", sanitizedKey)
+			}
+		}
+	}
+	ignoreList := append(conf.IgnoreList, conf.Labels...)
+	for _, label := range ignoreList {
+		delete(record, label)
+	}
+	js, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(record)
+	if err != nil {
+		return err
+	}
+	return loki.Handle(labels, time.Now(), string(js))
 }
