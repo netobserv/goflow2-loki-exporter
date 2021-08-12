@@ -17,20 +17,20 @@ import (
 )
 
 type Config struct {
-	URL               string
-	TenantID          string
-	BatchWaitSeconds  int64
-	BatchSize         int
-	TimeoutSeconds    int64
-	MinBackoffSeconds int64
-	MaxBackoffSeconds int64
-	MaxRetries        int
-	Labels            []model.LabelName
-	StaticLabels      model.LabelSet
-	IgnoreList        []model.LabelName
-	PrintInput        bool
-	PrintOutput       bool
-	ClientConfig      promconf.HTTPClientConfig
+	URL               string                    `yaml:"url"`
+	TenantID          string                    `yaml:"tenantID"`
+	BatchWaitSeconds  int64                     `yaml:"batchWaitSeconds"`
+	BatchSize         int                       `yaml:"batchSize"`
+	TimeoutSeconds    int64                     `yaml:"timeoutSeconds"`
+	MinBackoffSeconds int64                     `yaml:"minBackoffSeconds"`
+	MaxBackoffSeconds int64                     `yaml:"maxBackoffSeconds"`
+	MaxRetries        int                       `yaml:"maxRetries"`
+	Labels            []model.LabelName         `yaml:"labels"`
+	StaticLabels      model.LabelSet            `yaml:"staticLabels"`
+	IgnoreList        []model.LabelName         `yaml:"ignoreList"`
+	PrintInput        bool                      `yaml:"printInput"`
+	PrintOutput       bool                      `yaml:"printOutput"`
+	ClientConfig      promconf.HTTPClientConfig `yaml:"clientConfig"`
 }
 
 func Load(file string) (Config, error) {

@@ -1,4 +1,4 @@
-# Example of deployment with kube-enricher and loki-exporter for Netflow v9 + IPFIX
+# Example of deployment with kube-enricher and loki-exporter for Netflow v5 (legacy)
 # 
 apiVersion: apps/v1
 kind: Deployment
@@ -25,7 +25,7 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - /goflow2 -listen netflow://:2055 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
+        - /goflow2 -listen nfl://:2055 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
         image: quay.io/jotak/goflow2:kube-loki-latest
         imagePullPolicy: IfNotPresent
         name: goflow

@@ -8,7 +8,7 @@ WORKDIR /build
 
 RUN go build -ldflags "-X main.version=${VERSION}" -o loki-exporter
 
-FROM quay.io/jotak/goflow:v2-kube
+FROM quay.io/jotak/goflow2:kube-latest
 
 COPY --from=builder /build/loki-exporter /
 

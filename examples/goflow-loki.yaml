@@ -20,7 +20,7 @@ spec:
         - /bin/sh
         - -c
         - /goflow2 -loglevel "trace" | /loki-exporter -loglevel "trace"
-        image: quay.io/jotak/goflow:v2-loki
+        image: quay.io/jotak/goflow2:loki-latest
         imagePullPolicy: IfNotPresent
         name: goflow
 ---

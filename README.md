@@ -15,25 +15,25 @@ Push flows directly to loki. It is an alternative to sending flows to file/stdou
 (This image will contain both goflow2 and the plugin)
 
 ```bash
-docker build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-loki .
-docker push quay.io/jotak/goflow:v2-loki
+docker build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow2:loki-latest .
+docker push quay.io/jotak/goflow2:loki-latest
 
 # or
 
-podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-loki .
-podman push quay.io/jotak/goflow:v2-loki
+podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow2:loki-latest .
+podman push quay.io/jotak/goflow2:loki-latest
 
 # or with kube-enricher
 
-podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-kube-loki -f examples/with-kube-enricher.dockerfile .
-podman push quay.io/jotak/goflow:v2-kube-loki
+podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow2:kube-loki-latest -f examples/with-kube-enricher.dockerfile .
+podman push quay.io/jotak/goflow2:kube-loki-latest
 ```
 
 To run it, simply `pipe` goflow2 output to `loki-exporter`.
 
 ## Examples in kube
 
-Assuming built image is `quay.io/jotak/goflow:v2-loki`.
+Assuming built image is `quay.io/jotak/goflow2:loki-latest`.
 
 Since both goflow + exporter are contained inside a single image, you can declare the following command inside the pod container:
 
@@ -44,7 +44,7 @@ Since both goflow + exporter are contained inside a single image, you can declar
         - /bin/sh
         - -c
         - /goflow2 -loglevel "trace" | /loki-exporter -loglevel "trace"
-        image: quay.io/jotak/goflow:v2-loki
+        image: quay.io/jotak/goflow2:loki-latest
 # ...
 ```
 
