@@ -1,12 +1,12 @@
 FROM golang:alpine as builder
-ARG LDFLAGS=""
+ARG VERSION=""
 
 RUN apk --update --no-cache add git build-base gcc
 
 COPY src /build
 WORKDIR /build
 
-RUN go build -o loki-exporter
+RUN go build -ldflags "-X main.version=${VERSION}" -o loki-exporter
 
 FROM quay.io/jotak/goflow:v2-kube
 

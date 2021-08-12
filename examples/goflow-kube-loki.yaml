@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: goflow
+  name: goflow
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: goflow
+  template:
+    metadata:
+      labels:
+        app: goflow
+    spec:
+      volumes:
+        - name: config-vol
+          configMap:
+            name: loki-exporter-config
+      containers:
+      - command:
+        - /bin/sh
+        - -c
+        - /goflow2 -listen netflow://:2055 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
+#        - /goflow2 -listen nfl://:2055 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
+        image: quay.io/jotak/goflow:v2-kube-loki
+        imagePullPolicy: IfNotPresent
+        name: goflow
+        volumeMounts:
+          - mountPath: /etc/loki-exporter
+            name: config-vol
+      serviceAccountName: goflow
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: goflow
+  namespace: default
+  labels:
+    app: goflow
+spec:
+  ports:
+  - port: 2055
+    protocol: UDP
+  selector:
+    app: goflow
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: loki-exporter-config
+data:
+  loki-exporter.yaml: |
+    labels:
+      - SrcNamespace
+      - SrcWorkload
+      - DstNamespace
+      - DstWorkload
+    ignore_list:
+      - NextHop
+      - NextHopAS
+    print_input: true
+    print_output: 1
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  labels:
+    app: goflow
+  name: goflow
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    app: goflow
+  name: goflow
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: goflow
+subjects:
+- kind: ServiceAccount
+  name: goflow
+  namespace: default
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  labels:
+    app: goflow
+  name: goflow
+rules:
+- apiGroups:
+  - ""
+  - "apps"
+  resources:
+  - pods
+  - replicasets
+  - services
+  verbs:
+  - list
+  - get

@@ -10,20 +10,21 @@ import (
 	"time"
 
 	logadapter "github.com/go-kit/kit/log/logrus"
-	"github.com/grafana/loki/pkg/promtail/client"
+	"github.com/grafana/loki-client-go/loki"
 	"github.com/jotak/goflow2-loki-exporter/config"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/prometheus/common/model"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 )
 
 var (
 	version     = "unknown"
-	commitHash  = "unknown"
+	app         = "loki-exporter"
+	configFile  = flag.String("config", "", "Path to the YAML config file")
 	logLevel    = flag.String("loglevel", "info", "Log level")
 	versionFlag = flag.Bool("v", false, "Print version")
-	configFile  = flag.String("config", "", "Path to the YAML config file")
-	appVersion  = fmt.Sprintf("loki-exporter %s / commit: %s", version, commitHash)
+	log         = logrus.WithField("module", app)
+	appVersion  = fmt.Sprintf("%s %s", app, version)
 )
 
 var (
@@ -41,11 +42,15 @@ func main() {
 		os.Exit(0)
 	}
 
-	lvl, _ := log.ParseLevel(*logLevel)
-	log.SetLevel(lvl)
+	lvl, err := logrus.ParseLevel(*logLevel)
+	if err != nil {
+		log.Errorf("Log level %s not recognized, using info", *logLevel)
+		*logLevel = "info"
+		lvl = logrus.InfoLevel
+	}
+	logrus.SetLevel(lvl)
 
 	var conf config.Config
-	var err error
 	if *configFile != "" {
 		conf, err = config.Load(*configFile)
 		if err != nil {
@@ -56,14 +61,13 @@ func main() {
 		conf = config.Default()
 	}
 
-	log.Infof("Config: %v", conf)
-	log.Info("Starting loki-exporter")
+	log.Infof("Starting %s at log level %s", appVersion, *logLevel)
 
 	clientConfig, err := conf.BuildClientConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	lokiClient, err := client.New(clientConfig, logadapter.NewLogrusLogger(log.StandardLogger()))
+	lokiClient, err := loki.NewWithLogger(clientConfig, logadapter.NewLogrusLogger(log))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -71,12 +75,12 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 	for scanner.Scan() {
 		in := scanner.Bytes()
+		if conf.PrintInput {
+			fmt.Println(string(in))
+		}
 		err := processRecord(in, conf, lokiClient)
 		if err != nil {
 			log.Error(err)
-		}
-		if conf.PrintRecords {
-			fmt.Println(string(in))
 		}
 	}
 
@@ -85,7 +89,7 @@ func main() {
 	}
 }
 
-func processRecord(rawRecord []byte, conf config.Config, loki client.Client) error {
+func processRecord(rawRecord []byte, conf config.Config, lokiClient *loki.Client) error {
 	// TODO: allow protobuf input
 	var record map[model.LabelName]interface{}
 	err := json.Unmarshal(rawRecord, &record)
@@ -120,5 +124,9 @@ func processRecord(rawRecord []byte, conf config.Config, loki client.Client) err
 	if err != nil {
 		return err
 	}
-	return loki.Handle(labels, time.Now(), string(js))
+	if conf.PrintOutput {
+		fmt.Println(string(js))
+	}
+	// TODO: use first or last switch timestamp as log ts?
+	return lokiClient.Handle(labels, time.Now(), string(js))
 }

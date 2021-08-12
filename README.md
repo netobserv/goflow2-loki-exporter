@@ -1,72 +1,103 @@
 # goflow2-loki-exporter
 
-Push flows directly to loki. It is an alternative of sending flows to file/stdout and using promtail.
-
 WIP
+
+## Description
+
+Push flows directly to loki. It is an alternative to sending flows to file/stdout and using promtail.
+
+## Configuration
+
+
 
 ## Build image
 
 (This image will contain both goflow2 and the plugin)
 
 ```bash
-docker build -t quay.io/jotak/goflow:v2-loki .
+docker build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-loki .
 docker push quay.io/jotak/goflow:v2-loki
 
 # or
 
-podman build -t quay.io/jotak/goflow:v2-loki .
+podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-loki .
 podman push quay.io/jotak/goflow:v2-loki
 
-# or
+# or with kube-enricher
 
-podman build -t quay.io/jotak/goflow:v2-kube-loki -f with-kube-enricher.dockerfile .
+podman build --build-arg VERSION=`git describe --long HEAD` -t quay.io/jotak/goflow:v2-kube-loki -f examples/with-kube-enricher.dockerfile .
 podman push quay.io/jotak/goflow:v2-kube-loki
 ```
 
-## Run in kube
+To run it, simply `pipe` goflow2 output to `loki-exporter`.
 
-Simply `pipe` goflow2 output to `loki-exporter`.
+## Examples in kube
 
-Example of usage in kube (assuming built image `quay.io/jotak/goflow:v2-loki`)
+Assuming built image is `quay.io/jotak/goflow:v2-loki`.
+
+Since both goflow + exporter are contained inside a single image, you can declare the following command inside the pod container:
 
 ```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  labels:
-    app: goflow
-  name: goflow
-  namespace: default
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: goflow
-  template:
-    metadata:
-      labels:
-        app: goflow
-    spec:
+# ...
       containers:
       - command:
         - /bin/sh
         - -c
-        - /goflow2 -loglevel "debug" | /kube-enricher | /loki-exporter
-        image: quay.io/jotak/goflow:v2-kube-loki
-        imagePullPolicy: IfNotPresent
-        name: goflow
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: goflow
-  namespace: default
-  labels:
-    app: goflow
-spec:
-  ports:
-  - port: 2055
-    protocol: UDP
-  selector:
-    app: goflow
+        - /goflow2 -loglevel "trace" | /loki-exporter -loglevel "trace"
+        image: quay.io/jotak/goflow:v2-loki
+# ...
 ```
+
+Check the [examples](./examples) directory.
+
+### Run on Kind with ovn-kubernetes
+
+First, [refer to this documentation](https://github.com/ovn-org/ovn-kubernetes/blob/master/docs/kind.md) to setup ovn-k on Kind.
+Then:
+
+```bash
+kubectl apply -f ./examples/goflow-kube-loki.yaml
+GF_IP=`kubectl get svc goflow -ojsonpath='{.spec.clusterIP}'` && echo $GF_IP
+kubectl set env daemonset/ovnkube-node -c ovnkube-node -n ovn-kubernetes OVN_IPFIX_TARGETS="$GF_IP:2055"
+```
+
+Finally check goflow's logs for output
+
+### Run on OpenShift with OVNKubernetes network provider
+
+- Pre-requisite: make sure you have a running OpenShift cluster (4.8 at least) with `OVNKubernetes` set as the network provider.
+
+In OpenShift, a difference with the upstream `ovn-kubernetes` is that the flows export config is managed by the `ClusterNetworkOperator`.
+
+```bash
+oc apply -f ./examples/goflow-kube-loki.yaml
+GF_IP=`oc get svc goflow -ojsonpath='{.spec.clusterIP}'` && echo $GF_IP
+oc patch networks.operator.openshift.io cluster --type='json' -p "$(sed -e "s/GF_IP/$GF_IP/" examples/net-cluster-patch.json)"
+```
+
+### Loki quickstart (helm)
+
+```bash
+helm upgrade --install loki grafana/loki-stack --set promtail.enabled=false
+helm install loki-grafana grafana/grafana
+kubectl get secret loki-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl port-forward svc/loki-grafana 3000:80
+```
+
+Open http://localhost:3000/
+Login with admin + printed password
+Add datasource => Loki => http://loki:3100/
+
+Example of queries:
+
+- View raw logs:
+
+`{app="goflow2"}`
+
+- Top 10 sources by volumetry (1 min-rate):
+
+`topk(10, (sum by(SrcWorkload,SrcNamespace) ( rate({ app="goflow2" } | json | __error__="" | unwrap Bytes [1m]) )))`
+
+- Top 10 destinations for a given source (1 min-rate):
+
+`topk(10, (sum by(DstWorkload,DstNamespace) ( rate({ app="goflow2",SrcNamespace="default",SrcWorkload="goflow" } | json | __error__="" | unwrap Bytes [1m]) )))`
