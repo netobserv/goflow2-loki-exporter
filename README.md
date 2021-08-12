@@ -63,6 +63,17 @@ kubectl set env daemonset/ovnkube-node -c ovnkube-node -n ovn-kubernetes OVN_IPF
 
 Finally check goflow's logs for output
 
+#### Legacy Netflow (v5)
+
+Similarly:
+
+```bash
+kubectl apply -f ./examples/goflow-kube-loki-nf5.yaml
+GF_IP=`kubectl get svc goflow -ojsonpath='{.spec.clusterIP}'` && echo $GF_IP
+kubectl set env daemonset/ovnkube-node -c ovnkube-node -n ovn-kubernetes OVN_NETFLOW_TARGETS="$GF_IP:2056"
+```
+
+
 ### Run on OpenShift with OVNKubernetes network provider
 
 - Pre-requisite: make sure you have a running OpenShift cluster (4.8 at least) with `OVNKubernetes` set as the network provider.

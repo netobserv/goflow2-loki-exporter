@@ -4,18 +4,18 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   labels:
-    app: goflow
-  name: goflow
+    app: goflow-leg
+  name: goflow-leg
   namespace: default
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: goflow
+      app: goflow-leg
   template:
     metadata:
       labels:
-        app: goflow
+        app: goflow-leg
     spec:
       volumes:
         - name: config-vol
@@ -25,7 +25,7 @@ spec:
       - command:
         - /bin/sh
         - -c
-        - /goflow2 -listen nfl://:2055 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
+        - /goflow2 -listen nfl://:2056 -loglevel "trace" | /kube-enricher -loglevel "trace" | /loki-exporter -config /etc/loki-exporter/loki-exporter.yaml -loglevel "trace"
         image: quay.io/jotak/goflow2:kube-loki-latest
         imagePullPolicy: IfNotPresent
         name: goflow
@@ -37,16 +37,16 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: goflow
+  name: goflow-leg
   namespace: default
   labels:
-    app: goflow
+    app: goflow-leg
 spec:
   ports:
-  - port: 2055
+  - port: 2056
     protocol: UDP
   selector:
-    app: goflow
+    app: goflow-leg
 ---
 apiVersion: v1
 kind: ConfigMap
