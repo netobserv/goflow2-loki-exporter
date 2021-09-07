@@ -69,7 +69,7 @@ Similarly:
 
 ```bash
 kubectl apply -f ./examples/goflow-kube-loki-nf5.yaml
-GF_IP=`kubectl get svc goflow -ojsonpath='{.spec.clusterIP}'` && echo $GF_IP
+GF_IP=`kubectl get svc goflow-leg -ojsonpath='{.spec.clusterIP}'` && echo $GF_IP
 kubectl set env daemonset/ovnkube-node -c ovnkube-node -n ovn-kubernetes OVN_NETFLOW_TARGETS="$GF_IP:2056"
 ```
 
