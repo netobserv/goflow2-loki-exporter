@@ -17,20 +17,22 @@ import (
 )
 
 type Config struct {
-	URL               string                    `yaml:"url"`
-	TenantID          string                    `yaml:"tenantID"`
-	BatchWaitSeconds  int64                     `yaml:"batchWaitSeconds"`
-	BatchSize         int                       `yaml:"batchSize"`
-	TimeoutSeconds    int64                     `yaml:"timeoutSeconds"`
-	MinBackoffSeconds int64                     `yaml:"minBackoffSeconds"`
-	MaxBackoffSeconds int64                     `yaml:"maxBackoffSeconds"`
-	MaxRetries        int                       `yaml:"maxRetries"`
-	Labels            []model.LabelName         `yaml:"labels"`
-	StaticLabels      model.LabelSet            `yaml:"staticLabels"`
-	IgnoreList        []model.LabelName         `yaml:"ignoreList"`
-	PrintInput        bool                      `yaml:"printInput"`
-	PrintOutput       bool                      `yaml:"printOutput"`
-	ClientConfig      promconf.HTTPClientConfig `yaml:"clientConfig"`
+	URL                    string                    `yaml:"url"`
+	TenantID               string                    `yaml:"tenantID"`
+	BatchWaitSeconds       int64                     `yaml:"batchWaitSeconds"`
+	BatchSize              int                       `yaml:"batchSize"`
+	TimeoutSeconds         int64                     `yaml:"timeoutSeconds"`
+	MinBackoffSeconds      int64                     `yaml:"minBackoffSeconds"`
+	MaxBackoffSeconds      int64                     `yaml:"maxBackoffSeconds"`
+	MaxRetries             int                       `yaml:"maxRetries"`
+	Labels                 []model.LabelName         `yaml:"labels"`
+	StaticLabels           model.LabelSet            `yaml:"staticLabels"`
+	IgnoreList             []model.LabelName         `yaml:"ignoreList"`
+	PrintInput             bool                      `yaml:"printInput"`
+	PrintOutput            bool                      `yaml:"printOutput"`
+	ClientConfig           promconf.HTTPClientConfig `yaml:"clientConfig"`
+	TimestampLabel         model.LabelName           `yaml:"timestampLabel"`
+	TimestampScaleToSecond float64                   `yaml:"timestampScaleToSecond"`
 }
 
 func Load(file string) (Config, error) {
@@ -61,6 +63,8 @@ func Default() Config {
 		StaticLabels: model.LabelSet{
 			"app": "goflow2",
 		},
+		TimestampLabel:         "TimeFlowStart",
+		TimestampScaleToSecond: 1,
 	}
 }
 

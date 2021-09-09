@@ -97,10 +97,33 @@ func processRecord(rawRecord []byte, conf config.Config, lokiClient *loki.Client
 		return err
 	}
 
+	// Get timestamp from record (default: TimeFlowStart)
+	timestamp := time.Now()
+	if conf.TimestampLabel != "" {
+		if t, ok := record[conf.TimestampLabel]; ok {
+			if ft, ok := t.(float64); ok {
+				unix := int64(ft * conf.TimestampScaleToSecond)
+				if unix != 0 {
+					timestamp = time.Unix(unix, 0)
+				} else {
+					log.Warnf("Empty timestamp (%s) found in record, use now instead", conf.TimestampLabel)
+				}
+			} else {
+				log.Warnf("Invalid timestamp (%s: %v) found in record: number explected", conf.TimestampLabel, t)
+			}
+		} else {
+			log.Warnf("Timestamp label %s not found in record", conf.TimestampLabel)
+		}
+	}
+
 	labels := model.LabelSet{}
+
+	// Add static labels from config
 	for k, v := range conf.StaticLabels {
 		labels[k] = v
 	}
+
+	// Add non-static labels from record
 	for _, label := range conf.Labels {
 		if val, ok := record[label]; ok {
 			sanitizedKey := model.LabelName(keyReplacer.Replace(string(label)))
@@ -116,10 +139,13 @@ func processRecord(rawRecord []byte, conf config.Config, lokiClient *loki.Client
 			}
 		}
 	}
+
+	// Remove labels and configured ignore list from record
 	ignoreList := append(conf.IgnoreList, conf.Labels...)
 	for _, label := range ignoreList {
 		delete(record, label)
 	}
+
 	js, err := jsoniter.ConfigCompatibleWithStandardLibrary.Marshal(record)
 	if err != nil {
 		return err
@@ -127,6 +153,5 @@ func processRecord(rawRecord []byte, conf config.Config, lokiClient *loki.Client
 	if conf.PrintOutput {
 		fmt.Println(string(js))
 	}
-	// TODO: use first or last switch timestamp as log ts?
-	return lokiClient.Handle(labels, time.Now(), string(js))
+	return lokiClient.Handle(labels, timestamp, string(js))
 }

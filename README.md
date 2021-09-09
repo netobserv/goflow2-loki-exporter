@@ -97,7 +97,8 @@ kubectl port-forward svc/loki-grafana 3000:80
 
 Open http://localhost:3000/
 Login with admin + printed password
-Add datasource => Loki => http://loki:3100/
+Add datasource => Loki =>
+http://loki:3100/
 
 Example of queries:
 
