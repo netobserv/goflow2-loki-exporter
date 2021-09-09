@@ -52,6 +52,8 @@ Check the [examples](./examples) directory.
 
 ### Run on Kind with ovn-kubernetes
 
+This example includes the kube-enricher: https://github.com/jotak/goflow2-kube-enricher/
+
 First, [refer to this documentation](https://github.com/ovn-org/ovn-kubernetes/blob/master/docs/kind.md) to setup ovn-k on Kind.
 Then:
 
@@ -75,6 +77,8 @@ kubectl set env daemonset/ovnkube-node -c ovnkube-node -n ovn-kubernetes OVN_NET
 
 
 ### Run on OpenShift with OVNKubernetes network provider
+
+This example includes the kube-enricher: https://github.com/jotak/goflow2-kube-enricher/
 
 - Pre-requisite: make sure you have a running OpenShift cluster (4.8 at least) with `OVNKubernetes` set as the network provider.
 
