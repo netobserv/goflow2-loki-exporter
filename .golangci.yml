@@ -1,0 +1,20 @@
+# TODO: agree with the team
+linters:
+  enable:
+    - deadcode
+    - errcheck
+    - errorlint
+#    - cyclop  to be added after we refactor for testing
+    - errname
+    - exhaustive
+    - exportloopref
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - varcheck
+    - goerr113
