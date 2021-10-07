@@ -33,9 +33,6 @@ printInput: true
 	// WHEN it is loaded and transformed into a Loki Config
 	cfg, err := LoadConfig(cfgFile.Name())
 	require.NoError(t, err)
-
-	// WHEN it is loaded and transformed into a Loki Config
-	require.NoError(t, err)
 	assert.Contains(t, cfg.Labels, "foo")
 	assert.Contains(t, cfg.Labels, "bar")
 	assert.True(t, cfg.PrintInput)

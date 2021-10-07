@@ -1,4 +1,4 @@
-// Package export enables data exporting to data ingestion backends (e.g. Loki)
+// Package export enables data exporting to ingestion backends (e.g. Loki)
 package export
 
 import (
