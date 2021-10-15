@@ -73,11 +73,11 @@ func ReadConfig(in io.Reader) (*Config, error) {
 func DefaultConfig() *Config {
 	return &Config{
 		URL:        "http://loki:3100/",
-		BatchWait:  1,
+		BatchWait:  1 * time.Second,
 		BatchSize:  100 * 1024,
-		Timeout:    10,
-		MinBackoff: 1,
-		MaxBackoff: 5 * 60,
+		Timeout:    10 * time.Second,
+		MinBackoff: 1 * time.Second,
+		MaxBackoff: 5 * time.Minute,
 		MaxRetries: 10,
 		StaticLabels: model.LabelSet{
 			"app": "goflow2",

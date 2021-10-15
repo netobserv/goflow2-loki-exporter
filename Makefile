@@ -1,5 +1,6 @@
 COVERPROFILE ?= coverage.out
 GOLANGCI_LINT_VERSION ?= v1.42.1
+IMAGE ?= quay.io/netobserv/goflow2-loki
 
 ARTIFACT_VERSION ?= $(shell git describe --long HEAD)
 CONTAINER_COMMAND ?= docker
@@ -17,7 +18,7 @@ lint: prereqs
 
 image:
 	@echo "### Building container with ${CONTAINER_COMMAND}"
-	${CONTAINER_COMMAND} build --build-arg VERSION=${ARTIFACT_VERSION} -t quay.io/jotak/goflow2:loki-latest .
+	${CONTAINER_COMMAND} build --build-arg VERSION=${ARTIFACT_VERSION} -t ${IMAGE} .
 
 test:
 	@echo "### Testing"
