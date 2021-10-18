@@ -4,17 +4,28 @@ linters:
     - deadcode
     - errcheck
     - errorlint
-#    - cyclop  to be added after we refactor for testing
+    - cyclop
     - errname
     - exhaustive
     - exportloopref
+    - gocritic
     - goimports
     - gosimple
     - govet
     - ineffassign
-    - staticcheck
+    - revive
     - structcheck
+    - stylecheck
     - typecheck
     - unused
     - varcheck
-    - goerr113
+linters-settings:
+  stylecheck:
+    go: "1.17"
+  gocritic:
+    enabled-checks:
+      - hugeParam
+      - rangeExprCopy
+      - rangeValCopy
+      - indexAlloc
+      - deprecatedComment
